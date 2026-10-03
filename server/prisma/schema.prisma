@@ -1,0 +1,320 @@
+// Telegram B2C Mini App — Full Database Schema
+// All entities for the complete e-commerce system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAYMENT_SUBMITTED
+  PAID
+  PAYMENT_REJECTED
+}
+
+enum NewsStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  telegramId      BigInt    @unique
+  telegramUsername String?
+  firstName       String
+  lastName        String?
+  phone           String?
+  fullName        String?
+  address         String?
+  buildingNumber  String?
+  homeNumber      String?
+  entranceCode    String?
+  language        String    @default("en")
+  theme           String    @default("system")
+  role            UserRole  @default(CUSTOMER)
+  isActive        Boolean   @default(true)
+  lastActivityAt  DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  favorites    Favorite[]
+  basketItems  BasketItem[]
+  orders       Order[]
+
+  @@index([telegramId])
+  @@index([phone])
+  @@index([role])
+}
+
+// ─── CATEGORY ─────────────────────────────────────────────────────────────────
+
+model Category {
+  id        String   @id @default(cuid())
+  nameUz    String
+  nameRu    String
+  nameEn    String
+  photo     String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ─── UNIT ─────────────────────────────────────────────────────────────────────
+
+model Unit {
+  id       String  @id @default(cuid())
+  nameUz   String
+  nameRu   String
+  nameEn   String
+  isActive Boolean @default(true)
+
+  products Product[]
+}
+
+// ─── PRODUCT ──────────────────────────────────────────────────────────────────
+
+model Product {
+  id              String        @id @default(cuid())
+  nameUz          String
+  nameRu          String
+  nameEn          String
+  descriptionUz   String?
+  descriptionRu   String?
+  descriptionEn   String?
+  photo           String?
+  price           Int           // stored in minor units (integer won)
+  categoryId      String
+  unitId          String
+  status          ProductStatus @default(ACTIVE)
+  stockQuantity   Int           @default(0)
+  sku             String?
+  barcode         String?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  category    Category     @relation(fields: [categoryId], references: [id])
+  unit        Unit         @relation(fields: [unitId], references: [id])
+  favorites   Favorite[]
+  basketItems BasketItem[]
+  orderItems  OrderItem[]
+  news        News[]
+  banners     Banner[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([sortOrder])
+  @@index([sku])
+  @@index([barcode])
+}
+
+// ─── FAVORITE ─────────────────────────────────────────────────────────────────
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+// ─── BASKET ───────────────────────────────────────────────────────────────────
+
+model BasketItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  addedAt   DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ─── ORDER ────────────────────────────────────────────────────────────────────
+
+model Order {
+  id                String        @id @default(cuid())
+  orderNumber       String        @unique
+  userId            String
+
+  // Delivery info snapshot
+  customerName      String
+  customerPhone     String
+  deliveryAddress   String
+  buildingNumber    String?
+  homeNumber        String?
+  entranceCode      String?
+
+  // Totals (integer won)
+  subtotal          Int
+  deliveryFee       Int           @default(0)
+  discount          Int           @default(0)
+  total             Int
+
+  orderStatus       OrderStatus   @default(PENDING)
+  paymentStatus     PaymentStatus @default(UNPAID)
+
+  // Payment proof
+  paymentProofImage String?
+  paymentSubmittedAt DateTime?
+
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user              User          @relation(fields: [userId], references: [id])
+  items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([orderStatus])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([orderNumber])
+}
+
+// ─── ORDER ITEM (snapshots) ──────────────────────────────────────────────────
+
+model OrderItem {
+  id            String @id @default(cuid())
+  orderId       String
+  productId     String
+  
+  // Snapshots at order time
+  productName   String
+  productPhoto  String?
+  unitName      String
+  unitPrice     Int
+  quantity      Int
+  total         Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+// ─── ORDER STATUS HISTORY ─────────────────────────────────────────────────────
+
+model OrderStatusHistory {
+  id          String      @id @default(cuid())
+  orderId     String
+  status      OrderStatus
+  note        String?
+  changedBy   String?     // user ID of admin who changed it
+  createdAt   DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// ─── NEWS ─────────────────────────────────────────────────────────────────────
+
+model News {
+  id             String     @id @default(cuid())
+  titleUz        String
+  titleRu        String
+  titleEn        String
+  descriptionUz  String?
+  descriptionRu  String?
+  descriptionEn  String?
+  photo          String?
+  productId      String?
+  status         NewsStatus @default(DRAFT)
+  publishedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([publishedAt])
+}
+
+// ─── BANNER ───────────────────────────────────────────────────────────────────
+
+model Banner {
+  id             String    @id @default(cuid())
+  photo          String
+  descriptionUz  String?
+  descriptionRu  String?
+  descriptionEn  String?
+  productId      String?
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ─── BANK ACCOUNT ─────────────────────────────────────────────────────────────
+
+model BankAccount {
+  id            String  @id @default(cuid())
+  bankName      String
+  accountNumber String
+  holderName    String
+  branchInfo    String?
+  isActive      Boolean @default(true)
+  sortOrder     Int     @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+}
