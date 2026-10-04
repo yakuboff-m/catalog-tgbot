@@ -147,7 +147,14 @@ router.post('/', upload.single('proof'), async (req: Request, res: Response) => 
     const seq = lastOrder ? parseInt(lastOrder.orderNumber.replace('ORD-', '')) + 1 : 10001;
     const orderNumber = `ORD-${seq}`;
 
-    const proofImage = req.file ? `/uploads/${req.file.filename}` : null;
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'RECEIPT_REQUIRED',
+        message: 'Payment receipt screenshot is required to place an order',
+      });
+    }
+
+    const proofImage = `/uploads/${req.file.filename}`;
 
     // 6. Create order atomically
     const order = await prisma.$transaction(async (tx) => {
@@ -165,15 +172,15 @@ router.post('/', upload.single('proof'), async (req: Request, res: Response) => 
           subtotal,
           total: subtotal,
           paymentProofImage: proofImage,
-          paymentStatus: proofImage ? 'PAYMENT_SUBMITTED' : 'UNPAID',
-          paymentSubmittedAt: proofImage ? new Date() : null,
+          paymentStatus: 'PAYMENT_SUBMITTED',
+          paymentSubmittedAt: new Date(),
           items: {
             create: orderItems,
           },
           statusHistory: {
             create: {
               status: 'PENDING',
-              note: proofImage ? 'Order placed with payment receipt' : 'Order placed',
+              note: 'Order placed with payment receipt',
             },
           },
         },
@@ -211,7 +218,7 @@ router.post('/', upload.single('proof'), async (req: Request, res: Response) => 
       return newOrder;
     });
 
-    // 7. Send rich admin notification with interactive buttons and receipt photo
+    // Notify admin bot with the attached payment receipt screenshot immediately
     sendAdminOrderNotification(order, order.paymentProofImage).catch(console.error);
 
     res.status(201).json(order);

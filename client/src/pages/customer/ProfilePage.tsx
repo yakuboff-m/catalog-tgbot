@@ -400,91 +400,82 @@ export function ProfilePage() {
         </div>
 
         {/* SECTION 3: ADMINISTRATION */}
-        <div style={{ marginBottom: 'var(--space-xl)' }}>
-          <div
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--color-text-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              marginBottom: 'var(--space-xs)',
-              paddingLeft: 'var(--space-xs)',
-            }}
-          >
-            Store Management
-          </div>
-
-          <div
-            className="card card--elevated"
-            onClick={async () => {
-              if (!isAdmin) {
-                try {
-                  const res = await api.devLogin('ADMIN');
-                  useStore.getState().setAuth(res.token, res.user);
-                  showToast('Admin mode activated!', 'success');
-                } catch {
-                  // proceed anyway
-                }
-              }
-              navigate('/admin');
-            }}
-            style={{
-              borderRadius: '18px',
-              padding: 'var(--space-lg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, rgba(230, 0, 18, 0.06), rgba(255, 107, 107, 0.1))',
-              border: '1px solid rgba(230, 0, 18, 0.2)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  background: 'var(--color-primary)',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 10px rgba(230, 0, 18, 0.3)',
-                }}
-              >
-                <ShieldCheck size={22} strokeWidth={2.2} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 'var(--font-base)' }}>
-                  {t('admin.dashboard', language)}
-                </div>
-                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                  {isAdmin ? 'Orders, products, categories & metrics' : 'Tap to switch to Admin mode'}
-                </div>
-              </div>
+        {isAdmin && (
+          <div style={{ marginBottom: 'var(--space-xl)' }}>
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--color-text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: 'var(--space-xs)',
+                paddingLeft: 'var(--space-xs)',
+              }}
+            >
+              Store Management
             </div>
 
             <div
+              className="card card--elevated"
+              onClick={() => navigate('/admin')}
               style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--color-surface)',
+                borderRadius: '18px',
+                padding: 'var(--space-lg)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                background: 'linear-gradient(135deg, rgba(230, 0, 18, 0.06), rgba(255, 107, 107, 0.1))',
+                border: '1px solid rgba(230, 0, 18, 0.2)',
               }}
             >
-              <ChevronRight size={18} color="var(--color-primary)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: 'var(--color-primary)',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 10px rgba(230, 0, 18, 0.3)',
+                  }}
+                >
+                  <ShieldCheck size={22} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 'var(--font-base)' }}>
+                    {t('admin.dashboard', language)}
+                  </div>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                    Orders, products, categories & metrics
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'var(--color-surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                }}
+              >
+                <ChevronRight size={18} color="var(--color-primary)" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* SECTION 4: DEV ROLE SWITCHER */}
-        {import.meta.env.DEV && (
+        {/* SECTION 4: DEV ROLE SWITCHER (Standalone Browser Dev Only) */}
+        {import.meta.env.DEV && !(window as any).Telegram?.WebApp?.initData && (
           <div style={{ marginTop: 'var(--space-xl)', padding: 'var(--space-md)', background: 'var(--color-bg-secondary)', borderRadius: '16px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Developer Sandbox Role
@@ -695,8 +686,21 @@ export function ProfilePage() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                <div className="form-group">
-                  <label className="form-label">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label
+                    className="form-label"
+                    style={{
+                      minHeight: '28px',
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      fontSize: '11px',
+                      lineHeight: '1.2',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                    }}
+                  >
                     {t('checkout.building', language)}
                   </label>
                   <input
@@ -705,10 +709,24 @@ export function ProfilePage() {
                     value={addressForm.buildingNumber}
                     onChange={(e) => setAddressForm({ ...addressForm, buildingNumber: e.target.value })}
                     placeholder="101-dong"
+                    style={{ textAlign: 'center', padding: '10px 6px', fontWeight: 600, fontSize: '13px' }}
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label
+                    className="form-label"
+                    style={{
+                      minHeight: '28px',
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      fontSize: '11px',
+                      lineHeight: '1.2',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                    }}
+                  >
                     {t('checkout.home', language)}
                   </label>
                   <input
@@ -717,10 +735,24 @@ export function ProfilePage() {
                     value={addressForm.homeNumber}
                     onChange={(e) => setAddressForm({ ...addressForm, homeNumber: e.target.value })}
                     placeholder="502-ho"
+                    style={{ textAlign: 'center', padding: '10px 6px', fontWeight: 600, fontSize: '13px' }}
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label
+                    className="form-label"
+                    style={{
+                      minHeight: '28px',
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      fontSize: '11px',
+                      lineHeight: '1.2',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                    }}
+                  >
                     {t('checkout.entrance', language)}
                   </label>
                   <input
@@ -729,6 +761,7 @@ export function ProfilePage() {
                     value={addressForm.entranceCode}
                     onChange={(e) => setAddressForm({ ...addressForm, entranceCode: e.target.value })}
                     placeholder="*1234#"
+                    style={{ textAlign: 'center', padding: '10px 6px', fontWeight: 600, fontSize: '13px' }}
                   />
                 </div>
               </div>

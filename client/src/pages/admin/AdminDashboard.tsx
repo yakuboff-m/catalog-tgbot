@@ -51,11 +51,11 @@ export function AdminDashboard() {
 
   useEffect(() => {
     async function loadStats() {
+      if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+        setLoading(false);
+        return;
+      }
       try {
-        if ((!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) && import.meta.env.DEV) {
-          const res = await api.devLogin('ADMIN');
-          useStore.getState().setAuth(res.token, res.user);
-        }
         const data = await api.adminGetDashboard();
         setStats(data);
       } catch (err) {
@@ -91,9 +91,11 @@ export function AdminDashboard() {
             Administrator privileges are required for this section.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', width: '100%', maxWidth: '280px', margin: '0 auto' }}>
-            <button className="btn btn--primary" onClick={handleEnableAdmin}>
-              Switch to Admin Mode
-            </button>
+            {import.meta.env.DEV && !(window as any).Telegram?.WebApp?.initData && (
+              <button className="btn btn--primary" onClick={handleEnableAdmin}>
+                Switch to Admin Mode (Dev)
+              </button>
+            )}
             <button className="btn btn--outline" onClick={() => navigate('/')}>
               Return Home
             </button>

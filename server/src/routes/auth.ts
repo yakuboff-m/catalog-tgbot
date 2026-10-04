@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database';
 import { config } from '../config';
-import { telegramAuth } from '../middleware/auth';
+import { telegramAuth, telegramInitDataAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -10,7 +10,7 @@ const router = Router();
  * POST /api/auth/telegram
  * Authenticate via Telegram initData, returns JWT + user data
  */
-router.post('/telegram', telegramAuth, async (req: Request, res: Response) => {
+router.post('/telegram', telegramInitDataAuth, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },

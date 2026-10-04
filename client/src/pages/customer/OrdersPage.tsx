@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store';
 import { t } from '../../i18n';
 import { api } from '../../api/client';
@@ -54,6 +54,8 @@ interface BankAccount {
 export function OrdersPage() {
   const language = useStore((s) => s.language);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlOrderId = searchParams.get('orderId');
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -61,6 +63,7 @@ export function OrdersPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [copiedBankId, setCopiedBankId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatPrice = (p: number) => `₩${p.toLocaleString()}`;
@@ -71,8 +74,16 @@ export function OrdersPage() {
         api.getOrders(),
         api.getBankAccounts().catch(() => []),
       ]);
-      setOrders(ordersRes.orders || []);
+      const list = ordersRes.orders || [];
+      setOrders(list);
       setBankAccounts(banksRes || []);
+
+      if (urlOrderId) {
+        const found = list.find((o: Order) => o.id === urlOrderId || o.orderNumber === urlOrderId);
+        if (found) {
+          setSelectedOrder(found);
+        }
+      }
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
@@ -82,7 +93,7 @@ export function OrdersPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [urlOrderId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,9 +127,10 @@ export function OrdersPage() {
     return true;
   });
 
-  const handleCopy = (text: string, label: string) => {
+  const handleCopy = (text: string, id: string) => {
     navigator.clipboard?.writeText(text);
-    showToast(`${label} ${t('payment.copied', language)}`, 'success');
+    setCopiedBankId(id);
+    setTimeout(() => setCopiedBankId(null), 2000);
   };
 
   const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +150,7 @@ export function OrdersPage() {
     }
   };
 
-  const orderStages = ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY', 'COMPLETED'];
+  const orderStages = ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY'];
 
   if (loading) {
     return (
@@ -154,7 +166,9 @@ export function OrdersPage() {
   if (selectedOrder) {
     const statusStyle = getStatusColor(selectedOrder.orderStatus);
     const paymentStyle = getPaymentStatusColor(selectedOrder.paymentStatus);
-    const currentStageIndex = orderStages.indexOf(selectedOrder.orderStatus);
+    const currentStageIndex = selectedOrder.orderStatus === 'COMPLETED'
+      ? orderStages.length - 1
+      : orderStages.indexOf(selectedOrder.orderStatus);
 
     return (
       <div className="page" style={{ paddingBottom: 'var(--space-3xl)' }}>
@@ -370,10 +384,22 @@ export function OrdersPage() {
                       </span>
                       <button
                         className="btn btn--sm btn--outline"
-                        style={{ padding: '4px 10px', fontSize: 'var(--font-xs)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        onClick={() => handleCopy(bank.accountNumber, bank.bankName)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: 'var(--font-xs)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          borderColor: copiedBankId === bank.id ? 'var(--color-primary)' : undefined,
+                          color: copiedBankId === bank.id ? 'var(--color-primary)' : undefined,
+                        }}
+                        onClick={() => handleCopy(bank.accountNumber, bank.id)}
                       >
-                        <Copy size={12} /> {t('payment.copy', language)}
+                        {copiedBankId === bank.id ? (
+                          <><Check size={12} /> {t('payment.copied', language)}</>
+                        ) : (
+                          <><Copy size={12} /> {t('payment.copy', language)}</>
+                        )}
                       </button>
                     </div>
                   </div>

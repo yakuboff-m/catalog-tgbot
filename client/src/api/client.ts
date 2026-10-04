@@ -29,12 +29,12 @@ class ApiClient {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+    }
 
-      // Send Telegram initData if available
-      const tgInitData = (window as any).Telegram?.WebApp?.initData;
-      if (tgInitData) {
-        headers['X-Telegram-Init-Data'] = tgInitData;
-      }
+    // Always send Telegram initData if available (needed for login and session freshness)
+    const tgInitData = (window as any).Telegram?.WebApp?.initData;
+    if (tgInitData) {
+      headers['X-Telegram-Init-Data'] = tgInitData;
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -55,6 +55,7 @@ class ApiClient {
   async login() {
     return this.request<{ token: string; user: any }>('/auth/telegram', {
       method: 'POST',
+      skipAuth: true,
     });
   }
 

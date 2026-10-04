@@ -7,26 +7,30 @@ import prisma from '../config/database';
 let bot: Bot | null = null;
 
 function buildOrderMessageText(order: any, statusTextOverride?: string): string {
-  const addressParts: string[] = [];
+  const addressLines: string[] = [];
   if (order.deliveryAddress) {
-    addressParts.push(`📍 <b>Yetkazib berish manzili:</b>\n<code>${order.deliveryAddress}</code>`);
+    addressLines.push(`📍 <b>Manzil:</b> <code>${order.deliveryAddress}</code>`);
   }
   if (order.buildingNumber) {
-    addressParts.push(`🏢 <b>Bino raqami:</b>\n<code>${order.buildingNumber}</code>`);
+    addressLines.push(`🏢 <b>Bino:</b> <code>${order.buildingNumber}</code>`);
   }
   if (order.homeNumber) {
-    addressParts.push(`🚪 <b>Uy / Xonadon:</b>\n<code>${order.homeNumber}</code>`);
+    addressLines.push(`🚪 <b>Uy/Xonadon:</b> <code>${order.homeNumber}</code>`);
   }
   if (order.entranceCode) {
-    addressParts.push(`🔐 <b>Kirish kodi:</b>\n<code>${order.entranceCode}</code>`);
+    addressLines.push(`🔐 <b>Kirish kodi:</b> <code>${order.entranceCode}</code>`);
   }
-  const formattedAddressSection = addressParts.length > 0
-    ? addressParts.join('\n\n')
-    : `📍 <b>Yetkazib berish manzili:</b>\n<i>Manzil kiritilmagan</i>`;
+  const addressSection = addressLines.length > 0
+    ? addressLines.join('\n')
+    : `📍 <i>Manzil kiritilmagan</i>`;
 
+  const itemsCount = order.items?.length || 0;
   const itemsText = order.items && order.items.length > 0
     ? order.items
-        .map((item: any, i: number) => `${i + 1}. <b>${item.productName}</b>\n   ${item.quantity} × ₩${item.unitPrice.toLocaleString()} = <b>₩${item.total.toLocaleString()}</b>`)
+        .map((item: any, i: number) => {
+          const formattedQty = `${item.quantity} × ₩${item.unitPrice.toLocaleString()}`;
+          return `${i + 1}. <b>${item.productName}</b>\n   ▫️ ${formattedQty} = <b>₩${item.total.toLocaleString()}</b>`;
+        })
         .join('\n\n')
     : 'Tovarlar mavjud emas';
 
@@ -37,28 +41,28 @@ function buildOrderMessageText(order: any, statusTextOverride?: string): string 
     ? '💳 Chek yuklangan (PAYMENT_SUBMITTED)'
     : '⏳ To\'lanmagan (UNPAID)';
 
-  return `━━━━━━━━━━━━━━━━━━
-🛒 <b>YANGI BUYURTMA #${order.orderNumber}</b>
-━━━━━━━━━━━━━━━━━━
+  const formattedDate = new Date(order.createdAt || Date.now()).toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-👤 <b>Xaridor:</b> ${order.customerName}
-
-📱 <b>Telefon (nusxalash uchun bosing):</b>
-<code>${order.customerPhone}</code>
-
-${formattedAddressSection}
-
-━━━━━━━━━━━━━━━━━━
-📦 <b>BUYURTMA TARKIBI:</b>
-
-${itemsText}
-
-━━━━━━━━━━━━━━━━━━
-💰 <b>JAMI: ₩${order.total.toLocaleString()}</b>
+  return `🛒 <b>BUYURTMA #${order.orderNumber}</b>
+━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Ism:</b> ${order.customerName}
+📱 <b>Tel:</b> <code>${order.customerPhone}</code>
+${addressSection}
+━━━━━━━━━━━━━━━━━━━━━
+📦 <b>Buyurtma tarkibi (${itemsCount} xil tovar):</b>
+<blockquote>${itemsText}</blockquote>
+━━━━━━━━━━━━━━━━━━━━━
+💰 <b>JAMI:</b> <b>₩${order.total.toLocaleString()}</b>
 💳 <b>To'lov:</b> ${paymentDisplay}
 📌 <b>Holat:</b> <b>${statusDisplay}</b>
-📅 ${new Date(order.createdAt || Date.now()).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
-━━━━━━━━━━━━━━━━━━`;
+📅 <b>Vaqt:</b> ${formattedDate}`;
 }
 
 function buildOrderKeyboard(orderId: string, currentStatus: string): InlineKeyboard {
@@ -384,12 +388,25 @@ export async function sendAdminOrderNotification(order: any, relativePhotoPath?:
 
     if (fs.existsSync(absolutePath)) {
       try {
-        await b.api.sendPhoto(config.telegram.adminChatId, new InputFile(absolutePath), {
-          caption: messageText,
-          parse_mode: 'HTML',
-          reply_markup: keyboard,
-        });
-        return;
+        if (messageText.length <= 1024) {
+          await b.api.sendPhoto(config.telegram.adminChatId, new InputFile(absolutePath), {
+            caption: messageText,
+            parse_mode: 'HTML',
+            reply_markup: keyboard,
+          });
+          return;
+        } else {
+          const shortCaption = `🛒 <b>BUYURTMA #${order.orderNumber}</b>\n💰 <b>JAMI:</b> ₩${order.total.toLocaleString()}\n👤 ${order.customerName} (<code>${order.customerPhone}</code>)`;
+          await b.api.sendPhoto(config.telegram.adminChatId, new InputFile(absolutePath), {
+            caption: shortCaption,
+            parse_mode: 'HTML',
+          });
+          await b.api.sendMessage(config.telegram.adminChatId, messageText, {
+            parse_mode: 'HTML',
+            reply_markup: keyboard,
+          });
+          return;
+        }
       } catch (err) {
         console.error('Failed to send order photo notification, falling back to text:', err);
       }

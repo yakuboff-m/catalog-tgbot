@@ -64,7 +64,6 @@ export function ProductDetailPage() {
       useStore.getState().updateProductBasketQty(product.id, currentQty + quantity);
       const basket = await api.getBasket();
       useStore.getState().updateBasketCount(basket.count);
-      showToast(t('product.addToBasket', language), 'success');
       navigate(-1);
     } catch (err: any) {
       console.error('Add to basket error:', err);
@@ -82,7 +81,6 @@ export function ProductDetailPage() {
       useStore.getState().toggleFavoriteId(product.id);
       const favs = await api.getFavorites().catch(() => ({ count: 0 }));
       useStore.getState().setFavoritesCount(favs.count || 0);
-      showToast(res.favorited ? 'Added to favorites' : 'Removed from favorites', 'info');
     } catch (err: any) {
       console.error('Toggle favorite error:', err);
     }

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag } from 'lucide-react';
+import { Search, ShoppingCart } from 'lucide-react';
 import { useStore } from '../../store';
 import { t } from '../../i18n';
 
@@ -35,7 +35,7 @@ export function AppHeader() {
             onClick={() => navigate('/basket')}
             aria-label="Basket"
           >
-            <ShoppingBag size={20} strokeWidth={2.2} />
+            <ShoppingCart size={23} strokeWidth={2.4} />
             {basketCount > 0 && (
               <span className="header-btn__badge">
                 {basketCount > 99 ? '99+' : basketCount}

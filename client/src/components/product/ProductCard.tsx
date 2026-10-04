@@ -48,8 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
     setIsLiking(true);
 
     // Optimistic store toggle
-    const nowLiked = toggleFavoriteId(product.id);
-    showToast(nowLiked ? 'Added to favorites' : 'Removed from favorites', 'info');
+    toggleFavoriteId(product.id);
 
     try {
       await api.toggleFavorite(product.id);
@@ -69,7 +68,6 @@ export function ProductCard({ product }: ProductCardProps) {
 
     // Optimistically update
     updateProductBasketQty(product.id, 1);
-    showToast(`${getName(product)} added to basket`, 'success');
 
     try {
       await api.addToBasket(product.id, 1);

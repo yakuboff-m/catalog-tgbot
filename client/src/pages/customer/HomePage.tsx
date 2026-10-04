@@ -14,6 +14,9 @@ import {
   Apple,
   Flame,
   Newspaper,
+  Clock,
+  ArrowRight,
+  X,
 } from 'lucide-react';
 
 interface Category {
@@ -157,27 +160,42 @@ function getCategoryTheme(cat: Category, index: number) {
 
 export function HomePage() {
   const language = useStore((s) => s.language);
+  const basketItems = useStore((s) => s.basketItems);
+  const basketCount = useStore((s) => s.basketCount);
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [pendingOrder, setPendingOrder] = useState<any>(null);
+  const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [catRes, prodRes, bannerRes, newsRes] = await Promise.all([
+        const [catRes, prodRes, bannerRes, newsRes, ordersRes, basketRes] = await Promise.all([
           api.getCategories().catch(() => []),
           api.getProducts({ limit: '10' }).catch(() => ({ products: [] })),
           api.getBanners().catch(() => []),
           api.getNews().catch(() => []),
+          api.getOrders().catch(() => ({ orders: [] })),
+          api.getBasket().catch(() => null),
         ]);
         setCategories(catRes || []);
         setProducts(prodRes?.products || []);
         setBanners(bannerRes || []);
         setNews(newsRes || []);
+        if (basketRes?.items) {
+          useStore.getState().setBasketItems(basketRes.items);
+        }
+        const unpaid = ordersRes?.orders?.find(
+          (o: any) => o.orderStatus === 'PENDING' && o.paymentStatus !== 'PAID'
+        );
+        if (unpaid) {
+          setPendingOrder(unpaid);
+        }
       } catch (err) {
         console.error('Home page load error:', err);
       } finally {
@@ -186,6 +204,11 @@ export function HomePage() {
     }
     loadData();
   }, []);
+
+  const basketTotal = (basketItems || []).reduce(
+    (acc, item) => acc + (item.product?.price || 0) * item.quantity,
+    0
+  );
 
   const getName = (item: any) => getLocalizedField(item, 'name', language);
   const getTitle = (item: any) => getLocalizedField(item, 'title', language);
@@ -453,6 +476,156 @@ export function HomePage() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Floating Uncompleted Order Bar */}
+      {!dismissed && (basketCount > 0 || pendingOrder) && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '72px',
+            left: '12px',
+            right: '12px',
+            zIndex: 90,
+            background: 'rgba(21, 27, 43, 0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '18px',
+            border: '1px solid rgba(59, 130, 246, 0.45)',
+            boxShadow: '0 10px 32px rgba(0, 0, 0, 0.55), 0 0 18px rgba(59, 130, 246, 0.25)',
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          {/* Left Icon with subtle pulsing dot */}
+          <div
+            style={{
+              position: 'relative',
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.35))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              color: 'var(--color-primary)',
+            }}
+          >
+            {basketCount > 0 ? <ShoppingBag size={22} /> : <Clock size={22} />}
+            <span
+              style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                width: '9px',
+                height: '9px',
+                borderRadius: '50%',
+                background: basketCount > 0 ? '#10B981' : '#F59E0B',
+                boxShadow: `0 0 8px ${basketCount > 0 ? '#10B981' : '#F59E0B'}`,
+              }}
+            />
+          </div>
+
+          {/* Center Info */}
+          <div
+            style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+            onClick={() => {
+              if (basketCount > 0) {
+                navigate('/basket');
+              } else if (pendingOrder) {
+                navigate(`/orders?orderId=${pendingOrder.id}`);
+              }
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: '14px',
+                lineHeight: 1.3,
+                color: 'var(--color-text)',
+                marginBottom: '4px',
+              }}
+            >
+              {basketCount > 0
+                ? t('home.uncompletedOrder', language)
+                : `${t('home.pendingOrderReceipt', language)} #${pendingOrder.orderNumber}`}
+            </div>
+            <div
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                {basketCount > 0
+                  ? `${basketCount} ${t('checkout.itemsCount', language)} · ₩${basketTotal.toLocaleString()}`
+                  : `₩${pendingOrder?.total?.toLocaleString()}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Right Action Button & Dismiss */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <button
+              className="btn btn--sm btn--primary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: 700,
+                borderRadius: '12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 2px 10px rgba(59, 130, 246, 0.45)',
+              }}
+              onClick={() => {
+                if (basketCount > 0) {
+                  navigate('/basket');
+                } else if (pendingOrder) {
+                  navigate(`/orders?orderId=${pendingOrder.id}`);
+                }
+              }}
+            >
+              <span>
+                {basketCount > 0
+                  ? t('home.completeOrder', language)
+                  : t('home.uploadReceipt', language)}
+              </span>
+              <ArrowRight size={14} />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Dismiss"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                opacity: 0.7,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDismissed(true);
+              }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

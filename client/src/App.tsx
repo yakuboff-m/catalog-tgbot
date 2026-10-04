@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from './store';
 import { useTheme } from './hooks/useTheme';
 import { api } from './api/client';
@@ -20,11 +20,35 @@ import './styles/components.css';
 
 function AppContent() {
   const { setAuth } = useStore();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Apply theme
   useTheme();
+
+  // Telegram BackButton global synchronization (prevents accidental closes / lost orders)
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (!tg?.BackButton) return;
+
+    // BasketPage has its own dedicated step-by-step back handlers
+    if (location.pathname === '/basket') return;
+
+    if (location.pathname === '/') {
+      tg.BackButton.hide();
+    } else {
+      tg.BackButton.show();
+      const handleBack = () => {
+        navigate(-1);
+      };
+      tg.BackButton.onClick(handleBack);
+      return () => {
+        tg.BackButton.offClick(handleBack);
+      };
+    }
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     async function init() {
@@ -38,8 +62,16 @@ function AppContent() {
 
         // Attempt authentication
         let currentToken = useStore.getState().token;
+        const storedUser = useStore.getState().user;
         
         if (tg?.initData) {
+          // If the stored user is for a different Telegram account, clear stale session immediately
+          const activeTgUserId = tg.initDataUnsafe?.user?.id?.toString();
+          if (storedUser && activeTgUserId && storedUser.telegramId !== activeTgUserId) {
+            useStore.getState().clearAuth();
+            currentToken = null;
+          }
+
           // If launched inside Telegram, always authenticate with Telegram initData
           try {
             const result = await api.login();
@@ -47,6 +79,8 @@ function AppContent() {
             currentToken = result.token;
           } catch (e) {
             console.warn('Telegram auth failed:', e);
+            useStore.getState().clearAuth();
+            currentToken = null;
           }
         } else if (currentToken) {
           // Verify existing token in browser
@@ -54,15 +88,19 @@ function AppContent() {
             const user = await api.getProfile();
             setAuth(currentToken, user);
           } catch {
+            useStore.getState().clearAuth();
             currentToken = null;
           }
         }
 
-        if (!currentToken) {
-          if (import.meta.env.DEV) {
-            const result = await api.devLogin('ADMIN');
+        // Only for standalone browser development (outside Telegram)
+        if (!currentToken && !tg?.initData && import.meta.env.DEV) {
+          try {
+            const result = await api.devLogin('CUSTOMER');
             setAuth(result.token, result.user);
             currentToken = result.token;
+          } catch (e) {
+            console.warn('Dev login failed:', e);
           }
         }
 

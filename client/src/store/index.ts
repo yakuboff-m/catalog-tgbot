@@ -38,6 +38,19 @@ interface BasketItem {
 
 type Theme = 'system' | 'light' | 'dark';
 
+export interface PendingOrderInfo {
+  id: string;
+  orderNumber: string;
+  total: number;
+  deliveryAddress: string;
+  buildingNumber?: string | null;
+  homeNumber?: string | null;
+  customerName: string;
+  customerPhone: string;
+  paymentProofImage?: string | null;
+  createdAt?: string;
+}
+
 interface AppState {
   // Auth
   token: string | null;
@@ -46,6 +59,10 @@ interface AppState {
   setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   updateUser: (user: Partial<User>) => void;
+
+  // Active Pending Order (awaiting payment proof)
+  activePendingOrder: PendingOrderInfo | null;
+  setActivePendingOrder: (order: PendingOrderInfo | null) => void;
 
   // Language
   language: Language;
@@ -92,6 +109,7 @@ export const useStore = create<AppState>()(
           token: null,
           user: null,
           isAuthenticated: false,
+          activePendingOrder: null,
           basketItems: [],
           basketCount: 0,
           basketMap: {},
@@ -102,6 +120,10 @@ export const useStore = create<AppState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
         })),
+
+      // Active Pending Order
+      activePendingOrder: null,
+      setActivePendingOrder: (activePendingOrder) => set({ activePendingOrder }),
 
       // Language
       language: 'en',
