@@ -91,16 +91,27 @@ export function createBot(): Bot {
 
   bot = new Bot(config.telegram.botToken);
 
-  // /start command — launches the Mini App
+  // /start command — launches the Mini App (with deep link support)
   bot.command('start', async (ctx) => {
-    const keyboard = new InlineKeyboard().webApp(
-      '🛍 Open Shop',
-      config.telegram.miniAppUrl || 'https://example.com'
-    );
+    const payload = (ctx.match || '').trim();
+    let miniAppUrl = config.telegram.miniAppUrl || 'https://example.com';
+    let buttonText = '🛍 Open Shop';
+
+    if (payload) {
+      const prodId = payload.replace(/^(prod_|product_)/, '');
+      if (prodId) {
+        const sep = miniAppUrl.includes('?') ? '&' : '?';
+        miniAppUrl = `${miniAppUrl}${sep}tgWebAppStartParam=prod_${prodId}`;
+        buttonText = '🛍 View Product';
+      }
+    }
+
+    const keyboard = new InlineKeyboard().webApp(buttonText, miniAppUrl);
 
     await ctx.reply(
-      '🛒 Welcome to the Shop!\n\n' +
-      'Tap the button below to start shopping.',
+      payload
+        ? '🛍 Tovarni koʻrish uchun quyidagi tugmani bosing:'
+        : '🛒 Welcome to the Shop!\n\nTap the button below to start shopping.',
       { reply_markup: keyboard }
     );
   });

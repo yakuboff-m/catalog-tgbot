@@ -4,7 +4,8 @@ import { useStore } from '../../store';
 import { t, getLocalizedField } from '../../i18n';
 import { api } from '../../api/client';
 import { showToast } from '../../hooks/useToast';
-import { Search, ArrowLeft, Heart, Tag, Check, Minus, Plus } from 'lucide-react';
+import { Search, ArrowLeft, Heart, Tag, Check, Minus, Plus, Share2 } from 'lucide-react';
+import { shareProduct } from '../../utils/share';
 
 interface Product {
   id: string;
@@ -31,10 +32,20 @@ export function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [addingToBasket, setAddingToBasket] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const getName = (item: any) => getLocalizedField(item, 'name', language);
   const getDescription = (item: any) => getLocalizedField(item, 'description', language);
   const formatPrice = (price: number) => `₩${price.toLocaleString()}`;
+
+  const handleShare = async () => {
+    if (!product) return;
+    const res = await shareProduct(product, language);
+    if (res === 'copied') {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -117,14 +128,37 @@ export function ProductDetailPage() {
 
   return (
     <div className="page" style={{ paddingBottom: '100px' }}>
-      {/* Back button */}
-      <div style={{ padding: 'var(--space-md)' }}>
+      {/* Top action bar: Back button & Share */}
+      <div style={{
+        padding: 'var(--space-sm) var(--space-md)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
         <button
           className="btn btn--sm btn--outline"
           onClick={() => navigate(-1)}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
           <ArrowLeft size={16} /> {t('general.back', language)}
+        </button>
+
+        <button
+          className="btn btn--sm btn--outline"
+          onClick={handleShare}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontWeight: 600,
+            borderColor: copiedLink ? 'var(--color-primary)' : undefined,
+            color: copiedLink ? 'var(--color-primary)' : undefined,
+          }}
+        >
+          {copiedLink ? <Check size={16} /> : <Share2 size={16} />}
+          <span>{copiedLink ? t('product.copiedLink', language) : t('product.share', language)}</span>
         </button>
       </div>
 
@@ -141,6 +175,32 @@ export function ProductDetailPage() {
         position: 'relative',
       }}>
         {!product.photo && <Tag size={64} color="var(--color-text-tertiary)" />}
+
+        {/* Floating Share button on image */}
+        <button
+          onClick={handleShare}
+          style={{
+            position: 'absolute',
+            top: 'var(--space-md)',
+            right: 'calc(var(--space-md) + 52px)',
+            width: '44px',
+            height: '44px',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(255,255,255,0.95)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            zIndex: 10,
+          }}
+          aria-label="Share"
+        >
+          {copiedLink ? <Check size={20} color="#10B981" /> : <Share2 size={20} color="#4B5563" />}
+        </button>
+
+        {/* Favorite button */}
         <button
           onClick={handleToggleFavorite}
           style={{
@@ -157,6 +217,7 @@ export function ProductDetailPage() {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            zIndex: 10,
           }}
         >
           <Heart size={22} fill={isFavorited ? '#EF4444' : 'none'} color={isFavorited ? '#EF4444' : '#6B7280'} />

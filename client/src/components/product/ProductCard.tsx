@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Tag, Minus, Plus } from 'lucide-react';
+import { Heart, Tag, Minus, Plus, Share2, Check } from 'lucide-react';
 import { useStore } from '../../store';
 import { t, getLocalizedField } from '../../i18n';
 import { api } from '../../api/client';
 import { showToast } from '../../hooks/useToast';
+import { shareProduct } from '../../utils/share';
 
 export interface ProductItem {
   id: string;
@@ -33,9 +34,19 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const [isLiking, setIsLiking] = useState(false);
   const [isUpdatingBasket, setIsUpdatingBasket] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   const getName = (item: any) => getLocalizedField(item, 'name', language);
   const formatPrice = (p: number) => `₩${p.toLocaleString()}`;
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = await shareProduct(product, language);
+    if (res === 'copied') {
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2000);
+    }
+  };
 
   const isLiked = favoriteIds.includes(product.id);
   const quantityInBasket = basketMap[product.id] || 0;
@@ -160,6 +171,32 @@ export function ProductCard({ product }: ProductCardProps) {
             <Tag size={36} color="var(--color-text-tertiary)" />
           </div>
         )}
+
+        {/* Share Button */}
+        <button
+          className="product-card__share"
+          onClick={handleShare}
+          aria-label="Share"
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '44px',
+            zIndex: 10,
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.95)',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.15s ease',
+          }}
+        >
+          {copiedShare ? <Check size={16} color="#10B981" /> : <Share2 size={15} color="#4B5563" />}
+        </button>
 
         {/* Favorite / Like Button */}
         <button

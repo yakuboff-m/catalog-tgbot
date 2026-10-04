@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
 import { t, getLocalizedField } from '../../i18n';
 import { api } from '../../api/client';
+import { extractTelegramProductDeepLink } from '../../utils/telegram';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProductCard } from '../../components/product/ProductCard';
 import {
@@ -173,6 +174,12 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const deepParam = extractTelegramProductDeepLink();
+    if (deepParam) {
+      navigate(`/product/${deepParam}`, { replace: true });
+      return;
+    }
+
     async function loadData() {
       try {
         const [catRes, prodRes, bannerRes, newsRes, ordersRes, basketRes] = await Promise.all([

@@ -15,6 +15,7 @@ import { SearchPage } from './pages/customer/SearchPage';
 import { ProductDetailPage } from './pages/customer/ProductDetailPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AlertTriangle } from 'lucide-react';
+import { extractTelegramProductDeepLink } from './utils/telegram';
 import './index.css';
 import './styles/components.css';
 
@@ -24,6 +25,7 @@ function AppContent() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deepLinkProduct, setDeepLinkProduct] = useState<string | null>(null);
 
   // Apply theme
   useTheme();
@@ -123,6 +125,12 @@ function AppContent() {
             console.warn('Failed to load initial counts', e);
           }
         }
+
+        // Extract deep link parameter across all Telegram delivery channels
+        const targetId = extractTelegramProductDeepLink();
+        if (targetId) {
+          setDeepLinkProduct(targetId);
+        }
       } catch (err: any) {
         console.error('Init error:', err);
         // Don't block the UI for auth errors in dev mode
@@ -138,6 +146,13 @@ function AppContent() {
 
     init();
   }, [setAuth]);
+
+  // Navigate to deep-linked product once authentication and router are fully loaded
+  useEffect(() => {
+    if (!isLoading && deepLinkProduct && !location.pathname.includes(deepLinkProduct)) {
+      navigate(`/product/${deepLinkProduct}`, { replace: true });
+    }
+  }, [isLoading, deepLinkProduct, location.pathname, navigate]);
 
   if (isLoading) {
     return (
@@ -165,6 +180,8 @@ function AppContent() {
       <Routes>
         {/* Customer routes */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/share/:productId" element={<ProductDetailPage />} />
+        <Route path="/p/:productId" element={<ProductDetailPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/categories/:categoryId" element={<CategoriesPage />} />
         <Route path="/product/:productId" element={<ProductDetailPage />} />

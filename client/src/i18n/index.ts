@@ -37,6 +37,8 @@ const translations = {
     'product.inStock': 'In Stock',
     'product.description': 'Description',
     'product.category': 'Category',
+    'product.share': 'Share',
+    'product.copiedLink': 'Link copied!',
 
     // Basket
     'basket.title': 'Basket',
@@ -219,6 +221,8 @@ const translations = {
     'product.inStock': 'В наличии',
     'product.description': 'Описание',
     'product.category': 'Категория',
+    'product.share': 'Поделиться',
+    'product.copiedLink': 'Ссылка скопирована!',
 
     // Basket
     'basket.title': 'Корзина',
@@ -401,6 +405,8 @@ const translations = {
     'product.inStock': 'Mavjud',
     'product.description': 'Tavsif',
     'product.category': 'Kategoriya',
+    'product.share': 'Ulashish',
+    'product.copiedLink': 'Havola nusxalandi!',
 
     // Basket
     'basket.title': 'Savat',

@@ -16,6 +16,7 @@ import bankAccountRoutes from './routes/bankAccounts';
 import newsRoutes from './routes/news';
 import bannerRoutes from './routes/banners';
 import adminRoutes from './routes/admin';
+import shareRoutes from './routes/share';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -59,6 +60,8 @@ app.use('/api/bank-accounts', bankAccountRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/share', shareRoutes);
+app.use('/p', shareRoutes);
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 
