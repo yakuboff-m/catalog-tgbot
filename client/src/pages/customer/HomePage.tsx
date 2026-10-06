@@ -13,7 +13,7 @@ import {
   ShoppingBag,
   Apple,
   Flame,
-  Newspaper,
+  Megaphone,
   Clock,
   ArrowRight,
   X,
@@ -163,15 +163,38 @@ export function HomePage() {
   const basketItems = useStore((s) => s.basketItems);
   const basketCount = useStore((s) => s.basketCount);
   const hasInitiatedCheckout = useStore((s) => s.hasInitiatedCheckout);
+  const lastSeenNewsId = useStore((s) => s.lastSeenNewsId);
+  const setLastSeenNewsId = useStore((s) => s.setLastSeenNewsId);
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [launchModalOpen, setLaunchModalOpen] = useState(false);
+  const [launchNews, setLaunchNews] = useState<NewsItem | null>(null);
+  const [dontShowToday, setDontShowToday] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<any>(null);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const hasUnreadNews = news.length > 0 && lastSeenNewsId !== news[0].id;
+
+  const handleCloseLaunchModal = () => {
+    if (launchNews) {
+      setLastSeenNewsId(launchNews.id);
+      if (dontShowToday) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        localStorage.setItem('mm_dont_show_news_date', todayStr);
+        localStorage.setItem('mm_dont_show_news_id', launchNews.id);
+      }
+    }
+    setLaunchModalOpen(false);
+  };
+
+  const handleNewsHeaderClick = () => {
+    navigate('/news');
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -188,6 +211,21 @@ export function HomePage() {
         setProducts(prodRes?.products || []);
         setBanners(bannerRes || []);
         setNews(newsRes || []);
+
+        // Check if there is published news and auto-launch modal if not silenced for today
+        if (newsRes && newsRes.length > 0) {
+          const latest = newsRes[0];
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const silencedDate = localStorage.getItem('mm_dont_show_news_date');
+          const silencedId = localStorage.getItem('mm_dont_show_news_id');
+
+          if (silencedDate !== todayStr || silencedId !== latest.id) {
+            setLaunchNews(latest);
+            setDontShowToday(false);
+            setLaunchModalOpen(true);
+          }
+        }
+
         if (basketRes?.items) {
           useStore.getState().setBasketItems(basketRes.items);
         }
@@ -218,7 +256,7 @@ export function HomePage() {
   if (loading) {
     return (
       <div className="page">
-        <AppHeader />
+        <AppHeader onNewsClick={handleNewsHeaderClick} hasUnreadNews={hasUnreadNews} />
         <div className="loading-screen" style={{ minHeight: '60vh' }}>
           <div className="loading-screen__spinner" />
         </div>
@@ -228,7 +266,7 @@ export function HomePage() {
 
   return (
     <div className="page">
-      <AppHeader />
+      <AppHeader onNewsClick={handleNewsHeaderClick} hasUnreadNews={hasUnreadNews} />
 
       {/* Banner Section */}
       <section className="section" style={{ marginTop: 'var(--space-md)', paddingBottom: 'var(--space-xs)' }}>
@@ -408,23 +446,37 @@ export function HomePage() {
 
       {/* News & Announcements */}
       {news.length > 0 && (
-        <section className="section" style={{ paddingBottom: 'var(--space-3xl)' }}>
+        <section className="section" id="news-section" style={{ paddingBottom: 'var(--space-3xl)' }}>
           <div className="section__header">
             <h2 className="section__title" style={{ fontSize: 'var(--font-lg)', fontWeight: 800 }}>
               {t('home.news', language)}
             </h2>
+            <button
+              className="section__action"
+              onClick={() => navigate('/news')}
+              style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '13px' }}
+            >
+              {t('home.viewAll', language)}
+            </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             {news.map((item) => (
               <div
                 key={item.id}
                 className="card card--elevated"
+                onClick={() => {
+                  setLaunchNews(item);
+                  setDontShowToday(false);
+                  setLaunchModalOpen(true);
+                }}
                 style={{
                   padding: 'var(--space-md)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-md)',
                   borderRadius: '16px',
+                  cursor: 'pointer',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
               >
                 <div
@@ -442,7 +494,7 @@ export function HomePage() {
                     overflow: 'hidden',
                   }}
                 >
-                  {!item.photo && <Newspaper size={24} color="var(--color-text-tertiary)" />}
+                  {!item.photo && <Megaphone size={24} color="var(--color-text-tertiary)" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
@@ -565,6 +617,169 @@ export function HomePage() {
             >
               <X size={15} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Launch / News Announcement Modal */}
+      {launchModalOpen && launchNews && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease',
+          }}
+          onClick={handleCloseLaunchModal}
+        >
+          <div
+            className="card card--elevated"
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '24px',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-primary)',
+              boxShadow: '0 20px 45px rgba(0, 0, 0, 0.35)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Close 'X' Button */}
+            <button
+              type="button"
+              onClick={handleCloseLaunchModal}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.55)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              title={t('general.close', language)}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Scrollable Content Body */}
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {/* Photo */}
+              {launchNews.photo && (
+                <div style={{ width: '100%', height: '220px', background: 'var(--color-bg-secondary)', overflow: 'hidden' }}>
+                  <img
+                    src={launchNews.photo}
+                    alt={getTitle(launchNews)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
+
+              <div style={{ padding: '20px' }}>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    background: 'var(--color-primary-light)',
+                    color: 'var(--color-primary)',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    marginBottom: '10px',
+                  }}
+                >
+                  <Megaphone size={13} />
+                  <span>{t('news.title', language)}</span>
+                </div>
+
+                <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', marginBottom: '10px', lineHeight: 1.35 }}>
+                  {getTitle(launchNews)}
+                </h2>
+
+                {getDescription(launchNews) && (
+                  <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                    {getDescription(launchNews)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Footer: Checkbox (Left) & Close (Right) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 18px',
+                borderTop: '1px solid var(--color-border)',
+                background: 'var(--color-bg-secondary)',
+                gap: '12px',
+              }}
+            >
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  color: 'var(--color-text-secondary)',
+                  userSelect: 'none',
+                  fontWeight: 500,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={dontShowToday}
+                  onChange={(e) => setDontShowToday(e.target.checked)}
+                  style={{
+                    width: '17px',
+                    height: '17px',
+                    accentColor: 'var(--color-primary)',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                  }}
+                />
+                <span>{t('news.dontShowToday', language)}</span>
+              </label>
+
+              <button
+                type="button"
+                className="btn btn--sm btn--primary"
+                onClick={handleCloseLaunchModal}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '12px',
+                }}
+              >
+                {t('general.close', language)}
+              </button>
+            </div>
           </div>
         </div>
       )}

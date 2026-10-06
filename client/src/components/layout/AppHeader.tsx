@@ -1,9 +1,14 @@
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart, Megaphone } from 'lucide-react';
 import { useStore } from '../../store';
 import { t } from '../../i18n';
 
-export function AppHeader() {
+interface AppHeaderProps {
+  onNewsClick?: () => void;
+  hasUnreadNews?: boolean;
+}
+
+export function AppHeader({ onNewsClick, hasUnreadNews }: AppHeaderProps) {
   const navigate = useNavigate();
   const user = useStore((s) => s.user);
   const language = useStore((s) => s.language);
@@ -29,6 +34,29 @@ export function AppHeader() {
             aria-label="Search"
           >
             <Search size={20} strokeWidth={2.2} />
+          </button>
+          <button
+            className="header-btn"
+            onClick={onNewsClick}
+            aria-label="News"
+            title={t('home.news', language)}
+            style={{ position: 'relative' }}
+          >
+            <Megaphone size={21} strokeWidth={2.2} />
+            {hasUnreadNews && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '6px',
+                  right: '6px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#EF4444',
+                  boxShadow: '0 0 6px #EF4444',
+                }}
+              />
+            )}
           </button>
           <button
             className="header-btn"

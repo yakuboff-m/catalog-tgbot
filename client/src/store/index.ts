@@ -85,6 +85,10 @@ interface AppState {
   hasInitiatedCheckout: boolean;
   setHasInitiatedCheckout: (val: boolean) => void;
 
+  // News indicator
+  lastSeenNewsId: string | null;
+  setLastSeenNewsId: (id: string | null) => void;
+
   // Favorites
   favoritesCount: number;
   favoriteIds: string[];
@@ -133,6 +137,10 @@ export const useStore = create<AppState>()(
       // Checkout initiation flag
       hasInitiatedCheckout: false,
       setHasInitiatedCheckout: (hasInitiatedCheckout) => set({ hasInitiatedCheckout }),
+
+      // News indicator
+      lastSeenNewsId: null,
+      setLastSeenNewsId: (lastSeenNewsId) => set({ lastSeenNewsId }),
 
       // Language
       language: 'en',
@@ -208,6 +216,7 @@ export const useStore = create<AppState>()(
         language: state.language,
         theme: state.theme,
         hasInitiatedCheckout: state.hasInitiatedCheckout,
+        lastSeenNewsId: state.lastSeenNewsId,
       }),
     }
   )

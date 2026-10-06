@@ -615,6 +615,7 @@ router.post('/news', upload.single('photo'), async (req: Request, res: Response)
       return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Required: titleUz, titleRu, titleEn' });
     }
 
+    const finalStatus = status || 'PUBLISHED';
     const news = await prisma.news.create({
       data: {
         titleUz, titleRu, titleEn,
@@ -622,9 +623,9 @@ router.post('/news', upload.single('photo'), async (req: Request, res: Response)
         descriptionRu: descriptionRu || null,
         descriptionEn: descriptionEn || null,
         productId: productId || null,
-        status: status || 'DRAFT',
+        status: finalStatus,
         photo: req.file ? `/uploads/${req.file.filename}` : null,
-        publishedAt: status === 'PUBLISHED' ? new Date() : null,
+        publishedAt: finalStatus === 'PUBLISHED' ? new Date() : null,
       },
     });
 

@@ -13,6 +13,7 @@ import { ProfilePage } from './pages/customer/ProfilePage';
 import { BasketPage } from './pages/customer/BasketPage';
 import { SearchPage } from './pages/customer/SearchPage';
 import { ProductDetailPage } from './pages/customer/ProductDetailPage';
+import { NewsPage } from './pages/customer/NewsPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AlertTriangle } from 'lucide-react';
 import { consumeTelegramProductDeepLink } from './utils/telegram';
@@ -196,6 +197,7 @@ function AppContent() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/basket" element={<BasketPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/news" element={<NewsPage />} />
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminDashboard />} />

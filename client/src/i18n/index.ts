@@ -173,6 +173,9 @@ const translations = {
     'general.search': 'Search',
     'general.noResults': 'No results found',
     'general.seeAll': 'See All',
+    'general.close': 'Close',
+    'news.dontShowToday': "Don't show today",
+    'news.title': 'News & Announcements',
 
     // Admin
     'admin.dashboard': 'Dashboard',
@@ -359,6 +362,9 @@ const translations = {
     'general.search': 'Поиск',
     'general.noResults': 'Ничего не найдено',
     'general.seeAll': 'Все',
+    'general.close': 'Закрыть',
+    'news.dontShowToday': 'Не показывать сегодня',
+    'news.title': 'Новости и объявления',
 
     // Admin
     'admin.dashboard': 'Панель',
@@ -545,6 +551,9 @@ const translations = {
     'general.search': 'Qidirish',
     'general.noResults': 'Natija topilmadi',
     'general.seeAll': 'Hammasi',
+    'general.close': 'Yopish',
+    'news.dontShowToday': "Bugun ko'rsatma",
+    'news.title': "Yangiliklar va e'lonlar",
 
     // Admin
     'admin.dashboard': 'Boshqaruv',

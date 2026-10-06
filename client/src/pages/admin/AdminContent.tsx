@@ -132,8 +132,9 @@ export function AdminContent() {
         await api.adminCreateBanner(data);
         showToast('Banner created!', 'success');
       } else {
+        data.append('status', 'PUBLISHED');
         await api.adminCreateNews(data);
-        showToast('News posted!', 'success');
+        showToast('News posted & published!', 'success');
       }
 
       setIsModalOpen(false);
