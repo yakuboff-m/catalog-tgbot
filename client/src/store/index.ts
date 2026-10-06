@@ -81,6 +81,10 @@ interface AppState {
   setBasketCount: (count: number) => void;
   updateProductBasketQty: (productId: string, quantity: number) => void;
 
+  // Checkout initiation flag (for abandoned checkout reminder)
+  hasInitiatedCheckout: boolean;
+  setHasInitiatedCheckout: (val: boolean) => void;
+
   // Favorites
   favoritesCount: number;
   favoriteIds: string[];
@@ -110,6 +114,7 @@ export const useStore = create<AppState>()(
           user: null,
           isAuthenticated: false,
           activePendingOrder: null,
+          hasInitiatedCheckout: false,
           basketItems: [],
           basketCount: 0,
           basketMap: {},
@@ -124,6 +129,10 @@ export const useStore = create<AppState>()(
       // Active Pending Order
       activePendingOrder: null,
       setActivePendingOrder: (activePendingOrder) => set({ activePendingOrder }),
+
+      // Checkout initiation flag
+      hasInitiatedCheckout: false,
+      setHasInitiatedCheckout: (hasInitiatedCheckout) => set({ hasInitiatedCheckout }),
 
       // Language
       language: 'en',
@@ -142,14 +151,24 @@ export const useStore = create<AppState>()(
         basketItems.forEach((i) => {
           map[i.productId] = i.quantity;
         });
-        set({
+        const totalCount = basketItems.reduce((sum, item) => sum + item.quantity, 0);
+        set((state) => ({
           basketItems,
           basketMap: map,
-          basketCount: basketItems.reduce((sum, item) => sum + item.quantity, 0),
-        });
+          basketCount: totalCount,
+          hasInitiatedCheckout: totalCount === 0 ? false : state.hasInitiatedCheckout,
+        }));
       },
-      updateBasketCount: (basketCount) => set({ basketCount }),
-      setBasketCount: (basketCount) => set({ basketCount }),
+      updateBasketCount: (basketCount) =>
+        set((state) => ({
+          basketCount,
+          hasInitiatedCheckout: basketCount === 0 ? false : state.hasInitiatedCheckout,
+        })),
+      setBasketCount: (basketCount) =>
+        set((state) => ({
+          basketCount,
+          hasInitiatedCheckout: basketCount === 0 ? false : state.hasInitiatedCheckout,
+        })),
       updateProductBasketQty: (productId, quantity) =>
         set((state) => {
           const newMap = { ...state.basketMap };
@@ -159,7 +178,11 @@ export const useStore = create<AppState>()(
             newMap[productId] = quantity;
           }
           const totalCount = Object.values(newMap).reduce((sum, q) => sum + q, 0);
-          return { basketMap: newMap, basketCount: totalCount };
+          return {
+            basketMap: newMap,
+            basketCount: totalCount,
+            hasInitiatedCheckout: totalCount === 0 ? false : state.hasInitiatedCheckout,
+          };
         }),
 
       // Favorites
@@ -184,6 +207,7 @@ export const useStore = create<AppState>()(
         token: state.token,
         language: state.language,
         theme: state.theme,
+        hasInitiatedCheckout: state.hasInitiatedCheckout,
       }),
     }
   )

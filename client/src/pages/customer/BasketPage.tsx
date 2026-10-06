@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ShoppingCart,
   Trash2,
@@ -66,8 +66,11 @@ export function BasketPage() {
   // Bank accounts for payment
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
+  const [searchParams] = useSearchParams();
+  const initialStep = (searchParams.get('step') === 'checkout' || searchParams.get('step') === 'address') ? 'address' : 'basket';
+
   // Checkout flow state: 'basket' -> 'address' -> 'payment' -> placedOrder (celebration)
-  const [checkoutStep, setCheckoutStep] = useState<'basket' | 'address' | 'payment'>('basket');
+  const [checkoutStep, setCheckoutStep] = useState<'basket' | 'address' | 'payment'>(initialStep);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<any | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -193,6 +196,7 @@ export function BasketPage() {
     if (!window.confirm('Savatdagi barcha mahsulotlarni tozalashni xohlaysizmi?')) return;
     try {
       await api.clearBasket();
+      useStore.getState().setHasInitiatedCheckout(false);
       await loadBasket();
     } catch (err: any) {
       console.error('Failed to clear basket:', err);
@@ -256,6 +260,7 @@ export function BasketPage() {
       setItems([]);
       useStore.getState().updateBasketCount(0);
       useStore.getState().setBasketItems([]);
+      useStore.getState().setHasInitiatedCheckout(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error('Final order placement error:', err);
@@ -1125,7 +1130,10 @@ export function BasketPage() {
                   borderRadius: '14px',
                   boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
                 }}
-                onClick={() => setCheckoutStep('address')}
+                onClick={() => {
+                  useStore.getState().setHasInitiatedCheckout(true);
+                  setCheckoutStep('address');
+                }}
               >
                 <span>{t('basket.checkout', language)}</span>
                 <ChevronRight size={18} />

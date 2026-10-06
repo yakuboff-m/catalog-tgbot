@@ -162,6 +162,7 @@ export function HomePage() {
   const language = useStore((s) => s.language);
   const basketItems = useStore((s) => s.basketItems);
   const basketCount = useStore((s) => s.basketCount);
+  const hasInitiatedCheckout = useStore((s) => s.hasInitiatedCheckout);
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -478,12 +479,12 @@ export function HomePage() {
         </section>
       )}
 
-      {/* Floating Uncompleted Order Bar */}
-      {!dismissed && (basketCount > 0 || pendingOrder) && (
+      {/* Floating Uncompleted Order Bar — Only shown if checkout was actually started or receipt is pending */}
+      {!dismissed && ((basketCount > 0 && hasInitiatedCheckout) || pendingOrder) && (
         <div className="floating-order-banner">
           {/* Left Icon with subtle pulsing dot */}
           <div className="floating-order-banner__icon">
-            {basketCount > 0 ? <ShoppingBag size={22} /> : <Clock size={22} />}
+            {(basketCount > 0 && hasInitiatedCheckout) ? <ShoppingBag size={22} /> : <Clock size={22} />}
             <span
               style={{
                 position: 'absolute',
@@ -492,8 +493,8 @@ export function HomePage() {
                 width: '9px',
                 height: '9px',
                 borderRadius: '50%',
-                background: basketCount > 0 ? '#10B981' : '#F59E0B',
-                boxShadow: `0 0 8px ${basketCount > 0 ? '#10B981' : '#F59E0B'}`,
+                background: (basketCount > 0 && hasInitiatedCheckout) ? '#10B981' : '#F59E0B',
+                boxShadow: `0 0 8px ${(basketCount > 0 && hasInitiatedCheckout) ? '#10B981' : '#F59E0B'}`,
               }}
             />
           </div>
@@ -502,21 +503,21 @@ export function HomePage() {
           <div
             style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
             onClick={() => {
-              if (basketCount > 0) {
-                navigate('/basket');
+              if (basketCount > 0 && hasInitiatedCheckout) {
+                navigate('/basket?step=checkout');
               } else if (pendingOrder) {
                 navigate(`/orders?orderId=${pendingOrder.id}`);
               }
             }}
           >
             <div className="floating-order-banner__title">
-              {basketCount > 0
+              {(basketCount > 0 && hasInitiatedCheckout)
                 ? t('home.uncompletedOrder', language)
                 : `${t('home.pendingOrderReceipt', language)} #${pendingOrder.orderNumber}`}
             </div>
             <div className="floating-order-banner__subtitle">
               <span className="floating-order-banner__amount">
-                {basketCount > 0
+                {(basketCount > 0 && hasInitiatedCheckout)
                   ? `${basketCount} ${t('checkout.itemsCount', language)} · ₩${basketTotal.toLocaleString()}`
                   : `₩${pendingOrder?.total?.toLocaleString()}`}
               </span>
@@ -538,15 +539,15 @@ export function HomePage() {
                 boxShadow: '0 2px 10px rgba(59, 130, 246, 0.45)',
               }}
               onClick={() => {
-                if (basketCount > 0) {
-                  navigate('/basket');
+                if (basketCount > 0 && hasInitiatedCheckout) {
+                  navigate('/basket?step=checkout');
                 } else if (pendingOrder) {
                   navigate(`/orders?orderId=${pendingOrder.id}`);
                 }
               }}
             >
               <span>
-                {basketCount > 0
+                {(basketCount > 0 && hasInitiatedCheckout)
                   ? t('home.completeOrder', language)
                   : t('home.uploadReceipt', language)}
               </span>
