@@ -146,7 +146,16 @@ export function BasketPage() {
       tg.BackButton.onClick(onBack);
       return () => tg.BackButton.offClick(onBack);
     } else {
-      tg.BackButton.hide();
+      tg.BackButton.show();
+      const onBack = () => {
+        if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+          navigate(-1);
+        } else {
+          navigate('/');
+        }
+      };
+      tg.BackButton.onClick(onBack);
+      return () => tg.BackButton.offClick(onBack);
     }
   }, [placedOrder, checkoutStep, navigate]);
 
@@ -384,7 +393,25 @@ export function BasketPage() {
     return (
       <div className="page">
         <div className="page__content" style={{ maxWidth: '520px', margin: '0 auto' }}>
-          <h1 className="page__title">{t('basket.title', language)}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-md)' }}>
+            <button
+              type="button"
+              className="btn btn--sm btn--outline"
+              onClick={() => {
+                if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate('/');
+                }
+              }}
+              style={{ padding: '6px 10px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title={t('general.back', language)}
+            >
+              <ArrowLeft size={16} />
+              <span>{t('general.back', language)}</span>
+            </button>
+            <h1 className="page__title" style={{ marginBottom: 0 }}>{t('basket.title', language)}</h1>
+          </div>
 
           <div className="empty-state">
             <div className="empty-state__icon">
@@ -886,12 +913,31 @@ export function BasketPage() {
       <div className="page__content">
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
-          <h1 className="page__title" style={{ marginBottom: 0 }}>
-            {checkoutStep === 'address' ? t('checkout.title', language) : t('basket.title', language)}
-            <span style={{ fontSize: 'var(--font-sm)', fontWeight: 500, color: 'var(--color-text-secondary)', marginLeft: 'var(--space-sm)' }}>
-              ({count} {t('basket.items', language)})
-            </span>
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {checkoutStep === 'basket' && (
+              <button
+                type="button"
+                className="btn btn--sm btn--outline"
+                onClick={() => {
+                  if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+                    navigate(-1);
+                  } else {
+                    navigate('/');
+                  }
+                }}
+                style={{ padding: '6px 10px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title={t('general.back', language)}
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <h1 className="page__title" style={{ marginBottom: 0 }}>
+              {checkoutStep === 'address' ? t('checkout.title', language) : t('basket.title', language)}
+              <span style={{ fontSize: 'var(--font-sm)', fontWeight: 500, color: 'var(--color-text-secondary)', marginLeft: 'var(--space-sm)' }}>
+                ({count} {t('basket.items', language)})
+              </span>
+            </h1>
+          </div>
           {checkoutStep === 'basket' && (
             <button
               className="btn btn--sm btn--outline"

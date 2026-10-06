@@ -7,6 +7,21 @@
  * - window.location.search (?tgWebAppStartParam=... or ?startapp=...)
  * - window.location.pathname (/share/:id, /p/:id, /product/:id)
  */
+let isDeepLinkConsumed = false;
+
+/**
+ * Consumes the Telegram deep link parameter exactly ONCE during the app session.
+ * Once consumed, subsequent calls return null so navigation (Back, Basket, etc.) is never trapped.
+ */
+export function consumeTelegramProductDeepLink(): string | null {
+  if (isDeepLinkConsumed) return null;
+  const id = extractTelegramProductDeepLink();
+  if (id) {
+    isDeepLinkConsumed = true;
+  }
+  return id;
+}
+
 export function extractTelegramProductDeepLink(): string | null {
   try {
     const tg = (window as any).Telegram?.WebApp;

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
 import { t, getLocalizedField } from '../../i18n';
 import { api } from '../../api/client';
-import { extractTelegramProductDeepLink } from '../../utils/telegram';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProductCard } from '../../components/product/ProductCard';
 import {
@@ -174,12 +173,6 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const deepParam = extractTelegramProductDeepLink();
-    if (deepParam) {
-      navigate(`/product/${deepParam}`, { replace: true });
-      return;
-    }
-
     async function loadData() {
       try {
         const [catRes, prodRes, bannerRes, newsRes, ordersRes, basketRes] = await Promise.all([
@@ -487,42 +480,9 @@ export function HomePage() {
 
       {/* Floating Uncompleted Order Bar */}
       {!dismissed && (basketCount > 0 || pendingOrder) && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '72px',
-            left: '12px',
-            right: '12px',
-            zIndex: 90,
-            background: 'rgba(21, 27, 43, 0.96)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '18px',
-            border: '1px solid rgba(59, 130, 246, 0.45)',
-            boxShadow: '0 10px 32px rgba(0, 0, 0, 0.55), 0 0 18px rgba(59, 130, 246, 0.25)',
-            padding: '14px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-        >
+        <div className="floating-order-banner">
           {/* Left Icon with subtle pulsing dot */}
-          <div
-            style={{
-              position: 'relative',
-              width: '44px',
-              height: '44px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.35))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              color: 'var(--color-primary)',
-            }}
-          >
+          <div className="floating-order-banner__icon">
             {basketCount > 0 ? <ShoppingBag size={22} /> : <Clock size={22} />}
             <span
               style={{
@@ -549,29 +509,13 @@ export function HomePage() {
               }
             }}
           >
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: '14px',
-                lineHeight: 1.3,
-                color: 'var(--color-text)',
-                marginBottom: '4px',
-              }}
-            >
+            <div className="floating-order-banner__title">
               {basketCount > 0
                 ? t('home.uncompletedOrder', language)
                 : `${t('home.pendingOrderReceipt', language)} #${pendingOrder.orderNumber}`}
             </div>
-            <div
-              style={{
-                fontSize: '12px',
-                color: 'var(--color-text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+            <div className="floating-order-banner__subtitle">
+              <span className="floating-order-banner__amount">
                 {basketCount > 0
                   ? `${basketCount} ${t('checkout.itemsCount', language)} · ₩${basketTotal.toLocaleString()}`
                   : `₩${pendingOrder?.total?.toLocaleString()}`}
@@ -612,18 +556,7 @@ export function HomePage() {
             <button
               type="button"
               aria-label="Dismiss"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--color-text-secondary)',
-                cursor: 'pointer',
-                padding: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                opacity: 0.7,
-              }}
+              className="floating-order-banner__dismiss"
               onClick={(e) => {
                 e.stopPropagation();
                 setDismissed(true);

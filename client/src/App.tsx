@@ -15,7 +15,7 @@ import { SearchPage } from './pages/customer/SearchPage';
 import { ProductDetailPage } from './pages/customer/ProductDetailPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AlertTriangle } from 'lucide-react';
-import { extractTelegramProductDeepLink } from './utils/telegram';
+import { consumeTelegramProductDeepLink } from './utils/telegram';
 import './index.css';
 import './styles/components.css';
 
@@ -43,7 +43,11 @@ function AppContent() {
     } else {
       tg.BackButton.show();
       const handleBack = () => {
-        navigate(-1);
+        if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+          navigate(-1);
+        } else {
+          navigate('/');
+        }
       };
       tg.BackButton.onClick(handleBack);
       return () => {
@@ -126,8 +130,8 @@ function AppContent() {
           }
         }
 
-        // Extract deep link parameter across all Telegram delivery channels
-        const targetId = extractTelegramProductDeepLink();
+        // Extract deep link parameter across all Telegram delivery channels (one-time on app boot)
+        const targetId = consumeTelegramProductDeepLink();
         if (targetId) {
           setDeepLinkProduct(targetId);
         }
@@ -147,12 +151,14 @@ function AppContent() {
     init();
   }, [setAuth]);
 
-  // Navigate to deep-linked product once authentication and router are fully loaded
+  // Navigate to deep-linked product once authentication and router are fully loaded (one-time)
   useEffect(() => {
-    if (!isLoading && deepLinkProduct && !location.pathname.includes(deepLinkProduct)) {
-      navigate(`/product/${deepLinkProduct}`, { replace: true });
+    if (!isLoading && deepLinkProduct) {
+      const target = deepLinkProduct;
+      setDeepLinkProduct(null); // Consumed! Clear immediately so subsequent navigations (Basket, Back, etc.) are never blocked
+      navigate(`/product/${target}`, { replace: true });
     }
-  }, [isLoading, deepLinkProduct, location.pathname, navigate]);
+  }, [isLoading, deepLinkProduct, navigate]);
 
   if (isLoading) {
     return (

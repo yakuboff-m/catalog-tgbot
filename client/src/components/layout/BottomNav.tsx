@@ -8,8 +8,15 @@ export function BottomNav() {
   const favoritesCount = useStore((s) => s.favoritesCount);
   const location = useLocation();
 
-  // Hide on admin pages
-  if (location.pathname.startsWith('/admin')) return null;
+  // Hide on admin pages and product detail screens
+  if (
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/product/') ||
+    location.pathname.startsWith('/share/') ||
+    location.pathname.startsWith('/p/')
+  ) {
+    return null;
+  }
 
   const items = [
     { path: '/', Icon: Home, label: t('nav.home', language) },

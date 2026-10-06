@@ -39,9 +39,11 @@ const translations = {
     'product.category': 'Category',
     'product.share': 'Share',
     'product.copiedLink': 'Link copied!',
+    'product.notFound': 'Product not found',
 
     // Basket
     'basket.title': 'Basket',
+    'basket.added': 'Added to basket!',
     'basket.empty': 'Your basket is empty',
     'basket.emptyDesc': 'Start shopping to add products',
     'basket.startShopping': 'Start Shopping',
@@ -223,9 +225,11 @@ const translations = {
     'product.category': 'Категория',
     'product.share': 'Поделиться',
     'product.copiedLink': 'Ссылка скопирована!',
+    'product.notFound': 'Товар не найден',
 
     // Basket
     'basket.title': 'Корзина',
+    'basket.added': 'Добавлено в корзину!',
     'basket.empty': 'Ваша корзина пуста',
     'basket.emptyDesc': 'Начните покупки',
     'basket.startShopping': 'Начать покупки',
@@ -407,9 +411,11 @@ const translations = {
     'product.category': 'Kategoriya',
     'product.share': 'Ulashish',
     'product.copiedLink': 'Havola nusxalandi!',
+    'product.notFound': 'Mahsulot topilmadi',
 
     // Basket
     'basket.title': 'Savat',
+    'basket.added': "Savatga qo'shildi!",
     'basket.empty': 'Savatingiz bo\'sh',
     'basket.emptyDesc': 'Xarid qilishni boshlang',
     'basket.startShopping': 'Xarid qilish',
