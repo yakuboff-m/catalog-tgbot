@@ -103,7 +103,7 @@ function AppContent() {
         // Only for standalone browser development (outside Telegram)
         if (!currentToken && !tg?.initData && import.meta.env.DEV) {
           try {
-            const result = await api.devLogin('CUSTOMER');
+            const result = await api.devLogin('ADMIN');
             setAuth(result.token, result.user);
             currentToken = result.token;
           } catch (e) {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
 import { t, getLocalizedField } from '../../i18n';
 import { api } from '../../api/client';
+import { showToast } from '../../hooks/useToast';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProductCard } from '../../components/product/ProductCard';
 import {
@@ -18,6 +19,7 @@ import {
   ArrowRight,
   X,
 } from 'lucide-react';
+import { useTelegramLongPressReorder } from '../../hooks/useTelegramLongPressReorder';
 
 interface Category {
   id: string;
@@ -160,6 +162,9 @@ function getCategoryTheme(cat: Category, index: number) {
 
 export function HomePage() {
   const language = useStore((s) => s.language);
+  const user = useStore((s) => s.user);
+  const isAdmin = import.meta.env.DEV || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
   const basketItems = useStore((s) => s.basketItems);
   const basketCount = useStore((s) => s.basketCount);
   const hasInitiatedCheckout = useStore((s) => s.hasInitiatedCheckout);
@@ -177,6 +182,30 @@ export function HomePage() {
   const [pendingOrder, setPendingOrder] = useState<any>(null);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Telegram-style long hold reorder for categories on HomePage (only active for Admin)
+  const { getItemProps: getCategoryItemProps } = useTelegramLongPressReorder({
+    items: categories,
+    enabled: isAdmin,
+    onOrderChange: setCategories,
+    onCommit: async (newCats) => {
+      try {
+        await api.adminReorderCategories(newCats.map((c) => c.id));
+        showToast(
+          language === 'ru'
+            ? 'Порядок категорий сохранен'
+            : language === 'en'
+            ? 'Category order saved'
+            : 'Kategoriyalar tartibi saqlandi',
+          'success'
+        );
+      } catch (err: any) {
+        showToast(err.message || 'Failed to reorder categories', 'error');
+        const res = await api.getCategories().catch(() => []);
+        setCategories(res || []);
+      }
+    },
+  });
 
   const hasUnreadNews = news.length > 0 && lastSeenNewsId !== news[0].id;
 
@@ -356,11 +385,13 @@ export function HomePage() {
           <div className="h-scroll" style={{ display: 'flex', gap: '14px', paddingBottom: '4px' }}>
             {categories.map((cat, idx) => {
               const theme = getCategoryTheme(cat, idx);
+              const itemProps = getCategoryItemProps(cat, idx);
 
               return (
                 <button
                   key={cat.id}
                   className="category-card"
+                  {...itemProps}
                   onClick={() => navigate(`/categories/${cat.id}`)}
                   style={{
                     width: '76px',
@@ -369,6 +400,10 @@ export function HomePage() {
                     alignItems: 'center',
                     gap: '8px',
                     cursor: 'pointer',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    position: 'relative',
+                    ...itemProps.style,
                   }}
                 >
                   <div
@@ -385,6 +420,7 @@ export function HomePage() {
                       boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
                       border: '1.5px solid rgba(255, 255, 255, 0.8)',
                       transition: 'transform 0.15s ease',
+                      pointerEvents: 'none',
                     }}
                   >
                     {cat.photo ? (
@@ -410,6 +446,7 @@ export function HomePage() {
                       textAlign: 'center',
                       lineHeight: 1.25,
                       width: '100%',
+                      pointerEvents: 'none',
                     }}
                   >
                     {getName(cat)}

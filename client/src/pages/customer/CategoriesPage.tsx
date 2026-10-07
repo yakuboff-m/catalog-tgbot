@@ -4,6 +4,9 @@ import { useStore } from '../../store';
 import { t, getLocalizedField } from '../../i18n';
 import { Package, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductCard } from '../../components/product/ProductCard';
+import { api } from '../../api/client';
+import { showToast } from '../../hooks/useToast';
+import { useTelegramLongPressReorder } from '../../hooks/useTelegramLongPressReorder';
 
 interface Category {
   id: string;
@@ -11,6 +14,7 @@ interface Category {
   nameRu: string;
   nameEn: string;
   photo: string | null;
+  sortOrder?: number;
   _count: { products: number };
 }
 
@@ -22,11 +26,15 @@ interface Product {
   photo: string | null;
   price: number;
   status: string;
+  sortOrder?: number;
   unit: { nameUz: string; nameRu: string; nameEn: string };
 }
 
 export function CategoriesPage() {
   const language = useStore((s) => s.language);
+  const user = useStore((s) => s.user);
+  const isAdmin = import.meta.env.DEV || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -38,15 +46,61 @@ export function CategoriesPage() {
 
   const getName = (item: any) => getLocalizedField(item, 'name', language);
 
+  // Telegram-style long hold reorder for categories (only active for Admin)
+  const { getItemProps: getCategoryItemProps } = useTelegramLongPressReorder({
+    items: categories,
+    enabled: isAdmin,
+    onOrderChange: setCategories,
+    onCommit: async (newCats) => {
+      try {
+        await api.adminReorderCategories(newCats.map((c) => c.id));
+        showToast(
+          language === 'ru'
+            ? 'Порядок категорий сохранен'
+            : language === 'en'
+            ? 'Category order saved'
+            : 'Kategoriyalar tartibi saqlandi',
+          'success'
+        );
+      } catch (err: any) {
+        showToast(err.message || 'Failed to reorder categories', 'error');
+        const res = await api.getCategories().catch(() => []);
+        setCategories(res || []);
+      }
+    },
+  });
+
+  // Telegram-style long hold reorder for products inside this category (only active for Admin)
+  const { getItemProps: getProductItemProps } = useTelegramLongPressReorder({
+    items: products,
+    enabled: isAdmin,
+    onOrderChange: setProducts,
+    onCommit: async (newProds) => {
+      try {
+        await api.adminReorderProducts(newProds.map((p) => p.id));
+        showToast(
+          language === 'ru'
+            ? 'Порядок товаров сохранен'
+            : language === 'en'
+            ? 'Product order saved'
+            : 'Mahsulotlar tartibi saqlandi',
+          'success'
+        );
+      } catch (err: any) {
+        showToast(err.message || 'Failed to reorder products', 'error');
+      }
+    },
+  });
+
   useEffect(() => {
     async function loadCategories() {
       try {
         const res = await fetch('/api/categories');
         const data = await res.json();
-        setCategories(data);
+        setCategories(data || []);
 
         if (categoryId) {
-          const cat = data.find((c: Category) => c.id === categoryId);
+          const cat = (data || []).find((c: Category) => c.id === categoryId);
           if (cat) setSelectedCategory(cat);
         }
       } catch (err) {
@@ -118,9 +172,24 @@ export function CategoriesPage() {
             </div>
           ) : (
             <div className="product-grid">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {products.map((product, index) => {
+                const itemProps = getProductItemProps(product, index);
+
+                return (
+                  <div
+                    key={product.id}
+                    {...itemProps}
+                    style={{
+                      position: 'relative',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      ...itemProps.style,
+                    }}
+                  >
+                    <ProductCard product={product as any} />
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -128,7 +197,7 @@ export function CategoriesPage() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-sm)', marginTop: 'var(--space-xl)' }}>
               <button
                 className="btn btn--sm btn--outline"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', padding: 0 }}
               >
@@ -139,7 +208,7 @@ export function CategoriesPage() {
               </span>
               <button
                 className="btn btn--sm btn--outline"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', padding: 0 }}
               >
@@ -157,30 +226,52 @@ export function CategoriesPage() {
     <div className="page">
       <div className="page__content">
         <h1 className="page__title">{t('nav.categories', language)}</h1>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-md)' }}>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              className="card card--elevated"
-              style={{ padding: 'var(--space-xl)', textAlign: 'center' }}
-              onClick={() => navigate(`/categories/${cat.id}`)}
-            >
-              {cat.photo ? (
-                <img src={cat.photo} alt={getName(cat)} style={{
-                  width: '60px', height: '60px', objectFit: 'cover',
-                  borderRadius: 'var(--radius-lg)', margin: '0 auto var(--space-sm)',
-                }} />
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-sm)' }}>
-                  <Package size={40} color="var(--color-primary)" />
+          {categories.map((cat, index) => {
+            const itemProps = getCategoryItemProps(cat, index);
+
+            return (
+              <button
+                key={cat.id}
+                className="card card--elevated"
+                {...itemProps}
+                style={{
+                  padding: 'var(--space-xl)',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  position: 'relative',
+                  ...itemProps.style,
+                }}
+                onClick={() => navigate(`/categories/${cat.id}`)}
+              >
+                {cat.photo ? (
+                  <img
+                    src={cat.photo}
+                    alt={getName(cat)}
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      objectFit: 'cover',
+                      borderRadius: 'var(--radius-lg)',
+                      margin: '0 auto var(--space-sm)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-sm)', pointerEvents: 'none' }}>
+                    <Package size={40} color="var(--color-primary)" />
+                  </div>
+                )}
+                <div style={{ fontWeight: 600, fontSize: 'var(--font-base)', pointerEvents: 'none' }}>{getName(cat)}</div>
+                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)', marginTop: '4px', pointerEvents: 'none' }}>
+                  {cat._count?.products ?? 0} {t('admin.products', language).toLowerCase()}
                 </div>
-              )}
-              <div style={{ fontWeight: 600, fontSize: 'var(--font-base)' }}>{getName(cat)}</div>
-              <div style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                {cat._count.products} {t('admin.products', language).toLowerCase()}
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -58,7 +58,7 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
 router.get('/products', async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const skip = (page - 1) * limit;
     const search = (req.query.search as string) || '';
     const categoryId = req.query.categoryId as string | undefined;
@@ -76,12 +76,16 @@ router.get('/products', async (req: Request, res: Response) => {
     if (categoryId) where.categoryId = categoryId;
     if (status) where.status = status;
 
+    const orderBy: any = categoryId
+      ? [{ sortOrder: 'asc' }, { createdAt: 'desc' }]
+      : { createdAt: 'desc' };
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: { unit: true, category: true },
       }),
       prisma.product.count({ where }),
@@ -93,6 +97,29 @@ router.get('/products', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Admin get products error:', error);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
+router.put('/products/reorder', async (req: Request, res: Response) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'order must be a non-empty array of product IDs' });
+    }
+
+    await prisma.$transaction(
+      order.map((id: string, index: number) =>
+        prisma.product.update({
+          where: { id },
+          data: { sortOrder: index + 1 },
+        })
+      )
+    );
+
+    res.json({ success: true, message: 'Products reordered successfully' });
+  } catch (error) {
+    console.error('Reorder products error:', error);
     res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 });
@@ -195,6 +222,29 @@ router.get('/categories', async (_req: Request, res: Response) => {
     res.json(categories);
   } catch (error) {
     console.error('Admin get categories error:', error);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
+router.put('/categories/reorder', async (req: Request, res: Response) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'order must be a non-empty array of category IDs' });
+    }
+
+    await prisma.$transaction(
+      order.map((id: string, index: number) =>
+        prisma.category.update({
+          where: { id },
+          data: { sortOrder: index + 1 },
+        })
+      )
+    );
+
+    res.json({ success: true, message: 'Categories reordered successfully' });
+  } catch (error) {
+    console.error('Reorder categories error:', error);
     res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 });

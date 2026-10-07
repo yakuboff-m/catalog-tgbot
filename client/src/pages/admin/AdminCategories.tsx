@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { FolderTree, Plus, Edit3, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import { api } from '../../api/client';
 import { showToast } from '../../hooks/useToast';
+import { useTelegramLongPressReorder } from '../../hooks/useTelegramLongPressReorder';
 
 interface Category {
   id: string;
@@ -46,6 +47,21 @@ export function AdminCategories() {
   useEffect(() => {
     loadCategories();
   }, []);
+
+  const { getItemProps } = useTelegramLongPressReorder({
+    items: categories,
+    enabled: true,
+    onOrderChange: setCategories,
+    onCommit: async (newCats) => {
+      try {
+        await api.adminReorderCategories(newCats.map((c) => c.id));
+        showToast('Kategoriyalar tartibi saqlandi / Category order saved', 'success');
+      } catch (err: any) {
+        showToast(err.message || 'Failed to reorder categories', 'error');
+        loadCategories();
+      }
+    },
+  });
 
   const handleOpenAdd = () => {
     setEditingCategory(null);
@@ -214,18 +230,25 @@ export function AdminCategories() {
             </button>
           </div>
         ) : (
-          categories.map((cat) => (
-          <div
-            key={cat.id}
-            className="card card--elevated"
-            style={{
-              padding: 'var(--space-md)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 'var(--space-md)',
-            }}
-          >
+          categories.map((cat, index) => {
+            const itemProps = getItemProps(cat, index);
+
+            return (
+              <div
+                key={cat.id}
+                className="card card--elevated"
+                {...itemProps}
+                style={{
+                  padding: 'var(--space-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-md)',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  ...itemProps.style,
+                }}
+              >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flex: 1, minWidth: 0 }}>
               <div
                 style={{
@@ -283,9 +306,10 @@ export function AdminCategories() {
               </button>
             </div>
           </div>
-        ))
-      )}
-    </div>
+        );
+      })
+    )}
+  </div>
 
       {isModalOpen && (
         <div

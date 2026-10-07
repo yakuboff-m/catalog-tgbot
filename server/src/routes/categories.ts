@@ -44,11 +44,15 @@ router.get('/:id/products', async (req: Request, res: Response) => {
     const order = (req.query.order as string) || 'asc';
     const skip = (page - 1) * limit;
 
-    const orderBy: Record<string, string> = {};
-    if (['price', 'createdAt', 'sortOrder', 'stockQuantity'].includes(sort)) {
-      orderBy[sort] = order === 'desc' ? 'desc' : 'asc';
+    const orderBy: any = [];
+    if (sort === 'sortOrder') {
+      orderBy.push({ sortOrder: order === 'desc' ? 'desc' : 'asc' });
+      orderBy.push({ createdAt: 'desc' });
+    } else if (['price', 'createdAt', 'stockQuantity'].includes(sort)) {
+      orderBy.push({ [sort]: order === 'desc' ? 'desc' : 'asc' });
     } else {
-      orderBy.sortOrder = 'asc';
+      orderBy.push({ sortOrder: 'asc' });
+      orderBy.push({ createdAt: 'desc' });
     }
 
     const category = await prisma.category.findUnique({

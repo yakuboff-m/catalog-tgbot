@@ -236,6 +236,13 @@ class ApiClient {
     });
   }
 
+  async adminReorderProducts(order: string[]) {
+    return this.request<any>('/admin/products/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ order }),
+    });
+  }
+
   async adminGetCategories() {
     return this.request<any>('/admin/categories');
   }
@@ -251,6 +258,13 @@ class ApiClient {
     return this.request<any>(`/admin/categories/${id}`, {
       method: 'PATCH',
       body: data,
+    });
+  }
+
+  async adminReorderCategories(order: string[]) {
+    return this.request<any>('/admin/categories/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ order }),
     });
   }
 
